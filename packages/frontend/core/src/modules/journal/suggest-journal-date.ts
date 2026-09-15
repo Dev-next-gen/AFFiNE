@@ -103,13 +103,16 @@ export function suggestJournalDate(query: string): {
     for (const month of monthNames) {
       const monthMatched = fuzzyMatch(month, letters, true);
       if (monthMatched) {
-        let day = numbers ? parseInt(numbers) : dayjs().date();
-        const invalidDay = day < 1 || day > 31;
+        const year = dayjs().year();
+        const daysInMonth = dayjs(`${year}-${month}-1`).daysInMonth();
+        // today's day does not necessarily exist in the matched month
+        const fallbackDay = Math.min(dayjs().date(), daysInMonth);
+        let day = numbers ? parseInt(numbers) : fallbackDay;
+        const invalidDay = day < 1 || day > daysInMonth;
         if (invalidDay) {
           // fallback to today's day
-          day = dayjs().date();
+          day = fallbackDay;
         }
-        const year = dayjs().year();
         return {
           dateString: dayjs(`${year}-${month}-${day}`).format(
             JOURNAL_DATE_FORMAT
