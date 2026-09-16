@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import type { FilterGroup } from '../core/filter/types.js';
 import { numberFormats } from '../property-presets/number/utils/formats.js';
@@ -243,5 +243,26 @@ describe('number formatter', () => {
 
   test('supports comma as decimal separator in locale-specific input', () => {
     expect(parseNumber('11451,4', ',')).toBe(11451.4);
+  });
+
+  test('ignores period digit grouping when comma is the decimal separator', () => {
+    expect(parseNumber('1.234,5', ',', '.')).toBe(1234.5);
+    expect(parseNumber('1.234.567', ',', '.')).toBe(1234567);
+    expect(parseNumber('1.5', ',', '.')).toBe(1.5);
+  });
+
+  test('parses back grouped values formatted for a de-DE locale', () => {
+    const language = vi
+      .spyOn(navigator, 'language', 'get')
+      .mockReturnValue('de-DE');
+    try {
+      const value = 1234567.5;
+      expect(parseNumber(formatNumber(value, 'numberWithCommas', 1))).toBe(
+        value
+      );
+      expect(parseNumber(formatNumber(value, 'currencyEUR', 2))).toBe(value);
+    } finally {
+      language.mockRestore();
+    }
   });
 });

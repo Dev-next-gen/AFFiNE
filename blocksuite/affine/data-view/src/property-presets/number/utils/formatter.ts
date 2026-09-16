@@ -54,9 +54,31 @@ export function getLocaleDecimalSeparator(locale?: string) {
   return (1.1).toLocaleString(locale ?? navigator.language).slice(1, 2);
 }
 
+export function getLocaleGroupSeparator(locale?: string) {
+  return (
+    new Intl.NumberFormat(locale ?? navigator.language)
+      .formatToParts(1111111)
+      .find(part => part.type === 'group')?.value ?? ''
+  );
+}
+
 // Since we Intl does not provide a parse function we just made it ourself
-export function parseNumber(value: string, decimalSeparator?: string): number {
+export function parseNumber(
+  value: string,
+  decimalSeparator?: string,
+  groupSeparator?: string
+): number {
   decimalSeparator = decimalSeparator ?? getLocaleDecimalSeparator();
+  groupSeparator = groupSeparator ?? getLocaleGroupSeparator();
+
+  // Drop the locale's digit grouping first, otherwise a period used for
+  // grouping (1.234,5 in de-DE) is taken for a second decimal point below
+  if (groupSeparator && groupSeparator !== decimalSeparator) {
+    value = value.replace(
+      new RegExp(`\\${groupSeparator}(?=\\d{3}(?!\\d))`, 'g'),
+      ''
+    );
+  }
 
   // Normalize decimal separator to a period for consistency
   const normalizedValue = value.replace(
